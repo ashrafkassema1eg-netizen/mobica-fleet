@@ -945,7 +945,7 @@ function requestModification(id) {
     `📅 تاريخ التسليم: ${plan.delivery_date||'—'}\n\n`+
     `📝 <b>السبب:</b>\n${reason}\n\n`+
     `⚡ يرجى المراجعة والرد\n`+
-    `🔗 https://ashrafkassema1eg-netizen.github.io/mobica-fleet/planning/`;
+    `🔗 https://ashrafa1-glitch.github.io/mobica-fleet/planning/`;
   ADMIN_IDS.forEach(adminId => sendTelegram(adminId, msg));
 
   showToast('✅ تم إرسال طلب التعديل للإدارة');
@@ -1031,12 +1031,15 @@ let XL_ROWS    = [];
 
 // Column aliases (Arabic + English variants)
 const COL_ALIASES = {
-  order_no:      ['Installation Order','رقم الأمر','Order No','order_no','أمر التركيب','رقم امر'],
+  order_no:      ['Installation Order','رقم الأمر','Order No','order_no','أمر التركيب','رقم امر',
+                  'Sales Order','Prod. Ord.','Sales Order No'], // خطة الإنتاج
   customer:      ['Customer Name','اسم العميل','Customer','العميل','customer'],
   location:      ['Installation Address','الموقع','Address','العنوان','location','الموقع/المشروع'],
-  units:         ['Order Qty','الكمية','Units','عدد الوحدات','Qty','الوحدات','qty'],
+  units:         ['Order Qty','الكمية','Units','عدد الوحدات','Qty','الوحدات','qty',
+                  'Total Plan Units','Unit Measure','Total GR Units'], // خطة الإنتاج
   delivery_date: ['Planed finish date','Planned finish date','تاريخ التسليم','Delivery Date','delivery_date','تاريخ الانتهاء'],
-  team_code:     ['Installation Group','الفريق','Team','Group','team_code','مجموعة التركيب','المجموعة'],
+  team_code:     ['Installation Group','الفريق','Team','Group','team_code','مجموعة التركيب','المجموعة',
+                  'Workflow'], // خطة الإنتاج — A/B/C/D
 };
 
 function loadSheetJS(cb) {
@@ -1220,7 +1223,7 @@ function importPlans() {
   showToast(`✅ تم استيراد ${imported} خطة — في انتظار الاعتماد`);
 
   // notify admins
-  const msg = `📂 <b>استيراد خطط جديدة</b>\n\nتم رفع ${imported} خطة تركيب تنتظر اعتمادك\n\n🔗 https://ashrafkassema1eg-netizen.github.io/mobica-fleet/planning/`;
+  const msg = `📂 <b>استيراد خطط جديدة</b>\n\nتم رفع ${imported} خطة تركيب تنتظر اعتمادك\n\n🔗 https://ashrafa1-glitch.github.io/mobica-fleet/planning/`;
   ADMIN_IDS.forEach(id => sendTelegram(id, msg));
 
   resetUpload();
