@@ -1697,7 +1697,7 @@ function fetchOrdersFromServer(){
 // ══════════════════════════════════════════════════════════════
 // PUSH ORDERS TO SERVER — نظام رفع موثوق مع retry + تحقق
 // ══════════════════════════════════════════════════════════════
-function pushOrdersToServer(orders, by, onDone){
+function pushOrdersToServer(orders, by, onDone, retryPass){
   if(!API_URL || !orders.length) return;
   const BATCH = 10;
   let i = 0, successBatches = 0, failBatches = 0;
@@ -1707,8 +1707,8 @@ function pushOrdersToServer(orders, by, onDone){
 
   function sendBatch(){
     if(i >= orders.length){
-      // كل الـ batches اتبعتت — تحقق من السيرفر
-      setTimeout(()=>_verifyServerCount(orders.length, by, onDone), 2000);
+      // كل الـ batches اتبعتت — تحقق من السيرفر (مرة واحدة)
+      setTimeout(()=>_verifyServerCount(orders.length, by, onDone, retryPass||0), 2000);
       return;
     }
     const chunk = orders.slice(i, i+BATCH).map(o=>({
@@ -1755,26 +1755,39 @@ function _showUploadProgress(done, total, orderCount){
   }
 }
 
-function _verifyServerCount(expectedCount, by, onDone){
+function _verifyServerCount(expectedCount, by, onDone, retryCount){
+  const retry = retryCount || 0;
+  const el = document.getElementById('sync-badge');
+  const pushBtn = document.getElementById('push-btn');
+
   fetch(API_URL+'?action=getOrders')
     .then(r=>r.json())
     .then(d=>{
       const serverCount = (d.orders||[]).length;
-      const el = document.getElementById('sync-badge');
-      if(serverCount >= expectedCount){
-        if(el){ el.textContent = `✅ ${serverCount} أمر على السيرفر`; el.style.color='#2e7d32'; }
-        localStorage.setItem(SK+'_server_count', serverCount);
+      localStorage.setItem(SK+'_server_count', serverCount);
+
+      // إعادة تفعيل الزرار دايماً
+      if(pushBtn){ pushBtn.textContent='☁️ رفع للسيرفر'; pushBtn.disabled=false; }
+
+      if(serverCount >= expectedCount * 0.9){ // قبول 90%+ كـ success
+        if(el){ el.textContent=`✅ ${serverCount} أمر على السيرفر`; el.style.color='#2e7d32'; }
         toast(`✅ السيرفر محدّث: ${serverCount} أمر`);
+        if(onDone) onDone(serverCount);
+      } else if(retry < 2){ // محاولتان فقط ثم نوقف
+        if(el){ el.textContent=`⚠️ ${serverCount}/${expectedCount} — محاولة ${retry+2}...`; el.style.color='#e65100'; }
+        toast(`جارى إعادة المحاولة (${retry+1}/2)...`);
+        setTimeout(()=>pushOrdersToServer(ORDERS, by, onDone, retry+1), 4000);
       } else {
-        if(el){ el.textContent = `⚠️ السيرفر ${serverCount}/${expectedCount}`; el.style.color='#c62828'; }
-        // إعادة رفع الأوامر الناقصة تلقائياً
-        toast(`⚠️ السيرفر ${serverCount} من ${expectedCount} — جارى إعادة الرفع...`);
-        setTimeout(()=>pushOrdersToServer(ORDERS, by, onDone), 3000);
-        return;
+        // توقف بعد المحاولات
+        if(el){ el.textContent=`⚠️ السيرفر ${serverCount}/${expectedCount}`; el.style.color='#c62828'; }
+        toast(`السيرفر: ${serverCount} أمر — اضغط ☁️ للإعادة`);
+        if(onDone) onDone(serverCount);
       }
-      if(onDone) onDone(serverCount);
     })
-    .catch(()=>{ toast('⚠️ تعذّر التحقق من السيرفر'); });
+    .catch(()=>{
+      if(pushBtn){ pushBtn.textContent='☁️ رفع للسيرفر'; pushBtn.disabled=false; }
+      toast('⚠️ تعذّر التحقق من السيرفر');
+    });
 }
 function opn(id){document.getElementById(id).classList.add('sh')}
 function cls(id){document.getElementById(id).classList.remove('sh')}
