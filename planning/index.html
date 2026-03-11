@@ -945,7 +945,7 @@ function requestModification(id) {
     `📅 تاريخ التسليم: ${plan.delivery_date||'—'}\n\n`+
     `📝 <b>السبب:</b>\n${reason}\n\n`+
     `⚡ يرجى المراجعة والرد\n`+
-    `🔗 https://ashrafa1-glitch.github.io/mobica-fleet/planning/`;
+    `🔗 https://ashrafkassema1eg-netizen.github.io/mobica-fleet/planning/`;
   ADMIN_IDS.forEach(adminId => sendTelegram(adminId, msg));
 
   showToast('✅ تم إرسال طلب التعديل للإدارة');
@@ -1220,7 +1220,7 @@ function importPlans() {
   showToast(`✅ تم استيراد ${imported} خطة — في انتظار الاعتماد`);
 
   // notify admins
-  const msg = `📂 <b>استيراد خطط جديدة</b>\n\nتم رفع ${imported} خطة تركيب تنتظر اعتمادك\n\n🔗 https://ashrafa1-glitch.github.io/mobica-fleet/planning/`;
+  const msg = `📂 <b>استيراد خطط جديدة</b>\n\nتم رفع ${imported} خطة تركيب تنتظر اعتمادك\n\n🔗 https://ashrafkassema1eg-netizen.github.io/mobica-fleet/planning/`;
   ADMIN_IDS.forEach(id => sendTelegram(id, msg));
 
   resetUpload();

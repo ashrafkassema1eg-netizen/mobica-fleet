@@ -532,7 +532,7 @@ function sendDailyReport(time) {
     `─────────────────────\n`+
     `${stopped.length?'⚠️ *أوامر متوقفة:*\n'+stopped.map(r=>`  • ${r.order_no} — ${r.customer} (${r.note||'—'})`).join('\n')+'\n':''}` +
     `${urgentIssues.length?'🚨 *مشاكل عاجلة:*\n'+urgentIssues.map(r=>`  • ${r.order_no} — ${r.issue_type}: ${r.note}`).join('\n')+'\n':''}` +
-    `👁️ *للتفاصيل:* https://ashrafa1-glitch.github.io/mobica-fleet/tracking/`;
+    `👁️ *للتفاصيل:* https://ashrafkassema1eg-netizen.github.io/mobica-fleet/tracking/`;
 
   // ── إحصائيات التذكيرات ────────────────────────────────
   const remStats = getReminderStats();
@@ -603,7 +603,7 @@ function sendDelayedToManagers() {
   const reminder =
     `⏰ *تذكير — تحديث يومي*\n`+
     `يرجى تحديث حالة أوامر التركيب الخاصة بك على النظام\n`+
-    `📱 https://ashrafa1-glitch.github.io/mobica-fleet/tracking/\n`+
+    `📱 https://ashrafkassema1eg-netizen.github.io/mobica-fleet/tracking/\n`+
     `\n`+
     `*تحقق من:*\n`+
     `• الأوامر المتأخرة عن موعدها ⚠️\n`+
@@ -692,7 +692,7 @@ function addSAPUpload(body) {
       const mgrMsg =
         `📦 *أوامر تركيب جديدة لفريقك*\n`+
         `${ords.map(o=>`  • ${o.order_no} | ${o.customer} | ${o.units} وحدة`).join('\n')}\n`+
-        `\n✅ افتح النظام وابدأ التخطيط:\nhttps://ashrafa1-glitch.github.io/mobica-fleet/tracking/`;
+        `\n✅ افتح النظام وابدأ التخطيط:\nhttps://ashrafkassema1eg-netizen.github.io/mobica-fleet/tracking/`;
       sendTelegram(mgr.id, mgrMsg);
     });
   }
@@ -835,7 +835,7 @@ function sendKhaledReport(time) {
       `🔴 أكثر من 14 يوم | 🟡 7-14 يوم | 🟠 3-7 أيام\n`;
   }
 
-  report += `\n👁️ التفاصيل: https://ashrafa1-glitch.github.io/mobica-fleet/tracking/`;
+  report += `\n👁️ التفاصيل: https://ashrafkassema1eg-netizen.github.io/mobica-fleet/tracking/`;
 
   sendTelegram(KHALED_ID, report);
   Logger.log('✅ Khaled report sent');
@@ -909,7 +909,7 @@ function sendDelayedReminders() {
       `لديك *${delayed.length}* أمر لم يُحدَّث منذ أكثر من 3 أيام:\n\n`+
       ordersList + moreCount +
       `\n─────────────────────\n`+
-      `📱 حدّث الحالة على: https://ashrafa1-glitch.github.io/mobica-fleet/tracking/\n`+
+      `📱 حدّث الحالة على: https://ashrafkassema1eg-netizen.github.io/mobica-fleet/tracking/\n`+
       `*يرجى الرد بـ "تم" أو "جاري" لكل أمر*`;
 
     sendTelegram(mgr.id, msg);
