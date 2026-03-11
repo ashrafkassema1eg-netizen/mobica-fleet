@@ -381,9 +381,28 @@ function login(){
     </div>`;
   localStorage.removeItem(SK+'_orders_fetch_ts');
   fetchOrdersFromServer(); // لما يخلص هيعمل go(PG) تلقائياً
-  setInterval(syncFromServer,15000); // كل 15 ثانية بدل 30
-  setInterval(_drainQueue, 20000);   // محاولة إعادة إرسال التحديثات الـ pending كل 20 ثانية
-  setTimeout(_updateSyncBadge, 2000); // تحديث الـ badge بعد التحميل
+  setInterval(syncFromServer,15000);
+  setInterval(_drainQueue, 20000);
+  setTimeout(_updateSyncBadge, 2000);
+  // عرض زر "رفع للسيرفر" لمستخدم supply/admin
+  if(U.role==='supply'||U.role==='admin'){
+    const nb=document.getElementById('nav');
+    if(nb && !document.getElementById('push-btn')){
+      const pb=document.createElement('button');
+      pb.id='push-btn';
+      pb.textContent='☁️ رفع للسيرفر';
+      pb.style.cssText='background:#1565c0;color:#fff;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;font-family:inherit;margin:4px 8px';
+      pb.onclick=()=>{
+        if(!ORDERS.length){toast('لا توجد أوامر');return;}
+        pb.textContent='⏳ جارى الرفع...'; pb.disabled=true;
+        pushOrdersToServer(ORDERS, U.name, (cnt)=>{
+          pb.textContent='☁️ رفع للسيرفر'; pb.disabled=false;
+          toast('✅ تم رفع '+cnt+' أمر للسيرفر');
+        });
+      };
+      nb.parentNode.insertBefore(pb, nb.nextSibling);
+    }
+  }
 }
 function logout(){
   U=null;
@@ -1675,39 +1694,87 @@ function fetchOrdersFromServer(){
 }
 
 // رفع الأوامر للسيرفر بعد SAP upload — بدفعات 10 أوامر
-function pushOrdersToServer(orders, by){
+// ══════════════════════════════════════════════════════════════
+// PUSH ORDERS TO SERVER — نظام رفع موثوق مع retry + تحقق
+// ══════════════════════════════════════════════════════════════
+function pushOrdersToServer(orders, by, onDone){
   if(!API_URL || !orders.length) return;
   const BATCH = 10;
-  let i = 0;
+  let i = 0, successBatches = 0, failBatches = 0;
+  const totalBatches = Math.ceil(orders.length / BATCH);
+
+  _showUploadProgress(0, totalBatches, orders.length);
+
   function sendBatch(){
-    if(i >= orders.length) return;
+    if(i >= orders.length){
+      // كل الـ batches اتبعتت — تحقق من السيرفر
+      setTimeout(()=>_verifyServerCount(orders.length, by, onDone), 2000);
+      return;
+    }
     const chunk = orders.slice(i, i+BATCH).map(o=>({
       order_no:   o.order_no,
-      customer:   o.customer,
-      address:    o.address   || '',
-      team_code:  o.team_code || '',
-      team_name:  o.team_name || '',
-      status:     o.status    || 'REL',
-      delivery:   o.delivery  || '',
-      planned:    o.planned   || '',
+      customer:   o.customer   || '',
+      address:    o.address    || '',
+      team_code:  o.team_code  || '',
+      team_name:  o.team_name  || '',
+      status:     o.status     || 'REL',
+      delivery:   o.delivery   || '',
+      planned:    o.planned    || '',
       total_units:o.total_units|| 0,
-      notes:      o.notes     || '',
-      upload_by:  by          || o.upload_by || '',
-      upload_ts:  o.upload_ts || Date.now(),
-      items:      o.items     || [],
-      main_group: o.main_group|| '',
-      phone:      o.phone     || '',
+      notes:      o.notes      || '',
+      upload_by:  by           || o.upload_by || '',
+      upload_ts:  o.upload_ts  || Date.now(),
+      items:      o.items      || [],
+      main_group: o.main_group || '',
+      phone:      o.phone      || '',
     }));
-    // action في الـ URL فقط — payload بدون action (يمنع تضارب الـ router)
+    const batchNum = Math.floor(i/BATCH)+1;
+    // action في الـ URL فقط — بدون action في الـ payload
     const payload = encodeURIComponent(JSON.stringify({orders:chunk, by}));
     fetch(API_URL+'?action=saveOrdersBatch&payload='+payload)
       .then(r=>r.json())
-      .then(d=>{ if(d.ok) console.log('✅ batch saved: '+chunk.length); else console.warn('⚠️ batch error',d); })
-      .catch(err=>console.warn('❌ batch failed',err));
+      .then(d=>{
+        if(d.ok){ successBatches++; }
+        else { failBatches++; console.warn('⚠️ batch '+batchNum+' error:', d); }
+        _showUploadProgress(batchNum, totalBatches, orders.length);
+      })
+      .catch(err=>{ failBatches++; console.warn('❌ batch '+batchNum+' failed:', err); });
     i += BATCH;
-    setTimeout(sendBatch, 800);
+    setTimeout(sendBatch, 700);
   }
   sendBatch();
+}
+
+function _showUploadProgress(done, total, orderCount){
+  const pct = total ? Math.round(done/total*100) : 0;
+  const el = document.getElementById('sync-badge');
+  if(!el) return;
+  if(done < total){
+    el.textContent = `☁️ جارى الرفع ${pct}٪ (${done}/${total})`;
+    el.style.color = '#1565c0';
+  }
+}
+
+function _verifyServerCount(expectedCount, by, onDone){
+  fetch(API_URL+'?action=getOrders')
+    .then(r=>r.json())
+    .then(d=>{
+      const serverCount = (d.orders||[]).length;
+      const el = document.getElementById('sync-badge');
+      if(serverCount >= expectedCount){
+        if(el){ el.textContent = `✅ ${serverCount} أمر على السيرفر`; el.style.color='#2e7d32'; }
+        localStorage.setItem(SK+'_server_count', serverCount);
+        toast(`✅ السيرفر محدّث: ${serverCount} أمر`);
+      } else {
+        if(el){ el.textContent = `⚠️ السيرفر ${serverCount}/${expectedCount}`; el.style.color='#c62828'; }
+        // إعادة رفع الأوامر الناقصة تلقائياً
+        toast(`⚠️ السيرفر ${serverCount} من ${expectedCount} — جارى إعادة الرفع...`);
+        setTimeout(()=>pushOrdersToServer(ORDERS, by, onDone), 3000);
+        return;
+      }
+      if(onDone) onDone(serverCount);
+    })
+    .catch(()=>{ toast('⚠️ تعذّر التحقق من السيرفر'); });
 }
 function opn(id){document.getElementById(id).classList.add('sh')}
 function cls(id){document.getElementById(id).classList.remove('sh')}
