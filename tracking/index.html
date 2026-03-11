@@ -1707,8 +1707,11 @@ function pushOrdersToServer(orders, by, onDone, retryPass){
 
   function sendBatch(){
     if(i >= orders.length){
-      // كل الـ batches اتبعتت — تحقق من السيرفر (مرة واحدة)
-      setTimeout(()=>_verifyServerCount(orders.length, by, onDone, retryPass||0), 2000);
+      // أعد تفعيل الزرار فوراً بعد انتهاء الـ batches
+      const pushBtn = document.getElementById('push-btn');
+      if(pushBtn){ pushBtn.textContent='☁️ رفع للسيرفر'; pushBtn.disabled=false; }
+      // تحقق في الخلفية بدون تأثير على الـ UI
+      setTimeout(()=>_verifyServerCount(orders.length, by, onDone, retryPass||0), 3000);
       return;
     }
     const chunk = orders.slice(i, i+BATCH).map(o=>({
@@ -1758,16 +1761,12 @@ function _showUploadProgress(done, total, orderCount){
 function _verifyServerCount(expectedCount, by, onDone, retryCount){
   const retry = retryCount || 0;
   const el = document.getElementById('sync-badge');
-  const pushBtn = document.getElementById('push-btn');
 
   fetch(API_URL+'?action=getOrders')
     .then(r=>r.json())
     .then(d=>{
       const serverCount = (d.orders||[]).length;
       localStorage.setItem(SK+'_server_count', serverCount);
-
-      // إعادة تفعيل الزرار دايماً
-      if(pushBtn){ pushBtn.textContent='☁️ رفع للسيرفر'; pushBtn.disabled=false; }
 
       if(serverCount >= expectedCount * 0.9){ // قبول 90%+ كـ success
         if(el){ el.textContent=`✅ ${serverCount} أمر على السيرفر`; el.style.color='#2e7d32'; }
@@ -1784,10 +1783,7 @@ function _verifyServerCount(expectedCount, by, onDone, retryCount){
         if(onDone) onDone(serverCount);
       }
     })
-    .catch(()=>{
-      if(pushBtn){ pushBtn.textContent='☁️ رفع للسيرفر'; pushBtn.disabled=false; }
-      toast('⚠️ تعذّر التحقق من السيرفر');
-    });
+    .catch(()=>{ toast('⚠️ تعذّر التحقق من السيرفر'); });
 }
 function opn(id){document.getElementById(id).classList.add('sh')}
 function cls(id){document.getElementById(id).classList.remove('sh')}
