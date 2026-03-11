@@ -1698,8 +1698,12 @@ function pushOrdersToServer(orders, by){
       main_group: o.main_group|| '',
       phone:      o.phone     || '',
     }));
-    const payload = encodeURIComponent(JSON.stringify({action:'saveOrders', orders:chunk, by}));
-    fetch(API_URL+'?action=saveOrdersBatch&payload='+payload).catch(()=>{});
+    // action في الـ URL فقط — payload بدون action (يمنع تضارب الـ router)
+    const payload = encodeURIComponent(JSON.stringify({orders:chunk, by}));
+    fetch(API_URL+'?action=saveOrdersBatch&payload='+payload)
+      .then(r=>r.json())
+      .then(d=>{ if(d.ok) console.log('✅ batch saved: '+chunk.length); else console.warn('⚠️ batch error',d); })
+      .catch(err=>console.warn('❌ batch failed',err));
     i += BATCH;
     setTimeout(sendBatch, 800);
   }
