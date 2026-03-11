@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning Agent — إدارة التركيبات</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;color:#1a1a2e;direction:rtl}
+:root{
+  --blue:#1565c0;--green:#2e7d32;--orange:#e65100;--red:#c62828;
+  --purple:#6a1b9a;--teal:#00695c;--gold:#f57f17;
+}
+
+/* ── HEADER ── */
+.header{background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+.header h1{font-size:1.1rem;font-weight:700}
+.header .sub{font-size:.75rem;opacity:.8;margin-top:2px}
+.badge{background:rgba(255,255,255,.2);padding:4px 10px;border-radius:20px;font-size:.75rem}
+
+/* ── LOGIN ── */
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--purple),var(--blue))}
+.login-card{background:#fff;border-radius:16px;padding:32px;width:320px;box-shadow:0 10px 40px rgba(0,0,0,.3);text-align:center}
+.login-card h2{color:var(--purple);margin-bottom:8px;font-size:1.3rem}
+.login-card p{color:#666;font-size:.85rem;margin-bottom:24px}
+.login-card input{width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:.95rem;margin-bottom:12px;text-align:right;font-family:inherit}
+.login-card input:focus{border-color:var(--purple);outline:none}
+.btn-login{width:100%;padding:12px;background:linear-gradient(135deg,var(--purple),var(--blue));color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:600}
+.login-err{color:var(--red);font-size:.8rem;margin-top:8px;display:none}
+
+/* ── TABS ── */
+.tabs{display:flex;background:#fff;border-bottom:2px solid #e0e0e0;overflow-x:auto;gap:0}
+.tab{padding:12px 18px;cursor:pointer;font-size:.85rem;font-weight:600;color:#666;border-bottom:3px solid transparent;white-space:nowrap;transition:.2s}
+.tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.tab-content{display:none;padding:16px}
+.tab-content.active{display:block}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-title{font-weight:700;font-size:.95rem;color:#1a1a2e}
+.section-title{font-size:1rem;font-weight:700;color:var(--purple);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e8e0f0}
+
+/* ── TEAM CAPACITY BARS ── */
+.team-bar{margin-bottom:12px}
+.team-bar-header{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:4px}
+.team-bar-name{font-weight:600}
+.team-bar-track{background:#f0f0f0;border-radius:6px;height:10px;overflow:hidden}
+.team-bar-fill{height:100%;border-radius:6px;transition:.5s}
+.cap-green{background:var(--green)}
+.cap-orange{background:var(--orange)}
+.cap-red{background:var(--red)}
+
+/* ── ORDER CARDS ── */
+.order-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-right:4px solid var(--purple)}
+.order-card.assigned{border-right-color:var(--green)}
+.order-card.urgent{border-right-color:var(--red)}
+.order-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.order-no{font-weight:700;color:var(--purple);font-size:.95rem}
+.order-customer{color:#444;font-size:.85rem;margin-bottom:4px}
+.order-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tag{padding:3px 8px;border-radius:12px;font-size:.72rem;font-weight:600}
+.tag-blue{background:#e3f2fd;color:var(--blue)}
+.tag-green{background:#e8f5e9;color:var(--green)}
+.tag-orange{background:#fff3e0;color:var(--orange)}
+.tag-red{background:#ffebee;color:var(--red)}
+.tag-purple{background:#f3e5f5;color:var(--purple)}
+.tag-gray{background:#f5f5f5;color:#666}
+
+/* ── PLAN FORM ── */
+.plan-form{background:#fafafa;border-radius:10px;padding:14px;border:2px solid #e8e0f0;margin-top:10px}
+.plan-form h4{color:var(--purple);margin-bottom:12px;font-size:.9rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-group label{display:block;font-size:.78rem;font-weight:600;color:#555;margin-bottom:4px}
+.form-group input,.form-group select{width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:.85rem;font-family:inherit;text-align:right}
+.form-group input:focus,.form-group select:focus{border-color:var(--purple);outline:none}
+.calc-box{background:#f3e5f5;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.82rem}
+.calc-box .calc-row{display:flex;justify-content:space-between;margin-bottom:4px}
+.calc-box .calc-highlight{font-weight:700;color:var(--purple);font-size:.95rem}
+
+/* ── BUTTONS ── */
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;font-family:inherit;transition:.2s}
+.btn-primary{background:var(--purple);color:#fff}
+.btn-primary:hover{background:#7b1fa2}
+.btn-success{background:var(--green);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-outline{background:transparent;border:2px solid var(--purple);color:var(--purple)}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+/* ── PLAN STATUS ── */
+.plan-item{background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.07)}
+.plan-status{padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:700}
+.status-pending{background:#fff3e0;color:var(--orange)}
+.status-approved{background:#e8f5e9;color:var(--green)}
+.status-rejected{background:#ffebee;color:var(--red)}
+
+/* ── SUMMARY STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.stat-card{background:#fff;border-radius:10px;padding:14px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.07)}
+.stat-num{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-label{font-size:.72rem;color:#666;margin-top:4px}
+.stat-purple{color:var(--purple)}
+.stat-green{color:var(--green)}
+.stat-orange{color:var(--orange)}
+.stat-red{color:var(--red)}
+
+/* ── TIMELINE ── */
+.timeline{margin-top:10px}
+.tl-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:.82rem}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.tl-done{background:var(--green)}
+.tl-next{background:var(--orange)}
+.tl-future{background:#ddd}
+.tl-label{font-weight:600;color:#333}
+.tl-date{color:#888;font-size:.75rem}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:16px 20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{color:var(--purple);font-size:1rem}
+.modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:#666}
+.modal-body{padding:16px 20px}
+.modal-footer{padding:12px 20px;border-top:1px solid #eee;display:flex;gap:8px;justify-content:flex-end}
+
+/* ── NOTIFICATION TOAST ── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:.85rem;z-index:9999;transition:.3s;opacity:0;pointer-events:none}
+.toast.show{opacity:1}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:30px;color:#aaa}
+.empty-icon{font-size:2.5rem;margin-bottom:8px}
+
+/* ── LOADING ── */
+.loading{text-align:center;padding:20px;color:#9c27b0;font-size:.85rem}
+
+@media(max-width:500px){
+  .form-row{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div style="font-size:2.5rem;margin-bottom:8px">📅</div>
+    <h2>Planning Agent</h2>
+    <p>نظام تخطيط التركيبات</p>
+    <input type="text" id="loginUser" placeholder="اسم المستخدم" autocomplete="off">
+    <input type="password" id="loginPass" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-login" onclick="doLogin()">دخول</button>
+    <div class="login-err" id="loginErr">اسم المستخدم أو كلمة المرور غلط</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none">
+  <div class="header">
+    <div>
+      <div class="header h1">📅 Planning Agent</div>
+      <div class="sub">نظام تخطيط وجدولة التركيبات</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="badge" id="headerUser"></span>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:.75rem">خروج</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('dashboard')">🏠 الرئيسية</div>
+    <div class="tab" onclick="switchTab('orders')">📋 الأوامر</div>
+    <div class="tab" onclick="switchTab('plans')">✅ الخطط</div>
+    <div class="tab" onclick="switchTab('newplan')">➕ خطة جديدة</div>
+    <div class="tab" onclick="switchTab('upload')">📂 رفع ملف</div>
+  </div>
+
+  <!-- TAB: DASHBOARD -->
+  <div class="tab-content active" id="tab-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num stat-purple" id="statTotal">—</div>
+        <div class="stat-label">إجمالي الأوامر</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num stat-orange" id="statUnplanned">—</div>
+        <div class="stat-label">تحتاج تخطيط</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num stat-green" id="statApproved">—</div>
+        <div class="stat-label">خطط معتمدة</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num stat-red" id="statDelayed">—</div>
+        <div class="stat-label">متأخرة</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">⚡ طاقة الفرق الحالية</div>
+      <div id="teamCapacity"><div class="loading">جارى التحميل...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">⚠️ أوامر تحتاج تخطيط عاجل</div>
+      <div id="urgentOrders"><div class="loading">جارى التحميل...</div></div>
+    </div>
+  </div>
+
+  <!-- TAB: ORDERS -->
+  <div class="tab-content" id="tab-orders">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <select id="filterStatus" onchange="renderOrders()" style="padding:8px;border-radius:8px;border:1.5px solid #ddd;font-family:inherit;font-size:.82rem">
+        <option value="">كل الحالات</option>
+        <option value="unplanned">غير مخططة</option>
+        <option value="planned">مخططة</option>
+        <option value="inprogress">جارى التركيب</option>
+        <option value="completed">مكتملة</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="loadFromServer()">🔄 تحديث</button>
+    </div>
+    <div id="ordersList"><div class="loading">جارى التحميل...</div></div>
+  </div>
+
+  <!-- TAB: PLANS -->
+  <div class="tab-content" id="tab-plans">
+    <div id="plansList"><div class="loading">جارى التحميل...</div></div>
+  </div>
+
+  <!-- TAB: NEW PLAN -->
+  <div class="tab-content" id="tab-newplan">
+    <div class="card">
+      <div class="section-title">➕ إنشاء خطة تركيب جديدة</div>
+
+      <div class="form-group" style="margin-bottom:12px">
+        <label>رقم الأمر</label>
+        <select id="npOrder" onchange="onOrderSelect()" style="width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:.85rem;font-family:inherit">
+          <option value="">اختر الأمر...</option>
+        </select>
+      </div>
+
+      <div id="orderInfo" style="display:none" class="plan-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>العميل</label>
+            <input type="text" id="npCustomer" readonly>
+          </div>
+          <div class="form-group">
+            <label>الموقع / المشروع</label>
+            <input type="text" id="npLocation" placeholder="مثال: القاهرة الجديدة">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>عدد الوحدات</label>
+            <input type="number" id="npUnits" min="1" oninput="calcPlan()" placeholder="مثال: 50">
+          </div>
+          <div class="form-group">
+            <label>الفريق المقترح</label>
+            <select id="npTeam" onchange="calcPlan()">
+              <option value="">اختر الفريق...</option>
+              <option value="P1">B — سامى فؤاد (61 فني)</option>
+              <option value="109962">D — هشام جمال (55 فني)</option>
+              <option value="P4">C — حازم قاعود (37 فني)</option>
+              <option value="ahmed">A — أحمد حسن (25 فني)</option>
+              <option value="A4">A4 — محمد وسيم (5 فنيين + مقاولين | أرضيات فقط)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>📅 تاريخ التسليم المتوقع</label>
+            <input type="date" id="npDelivery" oninput="calcPlan()">
+          </div>
+          <div class="form-group">
+            <label>⚡ الأولوية</label>
+            <select id="npPriority">
+              <option value="normal">عادي</option>
+              <option value="urgent">عاجل 🔴</option>
+              <option value="vip">VIP ⭐</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- حساب تلقائي -->
+        <div class="calc-box" id="calcResult" style="display:none">
+          <div style="font-weight:700;color:var(--purple);margin-bottom:8px">📊 حساب التخطيط التلقائي</div>
+          <div class="calc-row"><span>عدد الوحدات:</span><span id="calcUnits">—</span></div>
+          <div class="calc-row"><span>حجم الفريق:</span><span id="calcTeamSize">—</span></div>
+          <div class="calc-row"><span>طاقة الفريق اليومية:</span><span id="calcCapacity">—</span></div>
+          <div class="calc-row" style="border-top:1px solid #ddd;padding-top:6px;margin-top:6px">
+            <span>المدة المطلوبة:</span><span class="calc-highlight" id="calcDays">—</span>
+          </div>
+          <!-- الأفراد المطلوبين بناءً على تاريخ التسليم -->
+          <div id="calcReqStaff" style="display:none;background:#e8f5e9;border-radius:8px;padding:12px;margin-top:10px;text-align:center">
+            <div style="font-size:.8rem;color:#555;margin-bottom:4px">👷 الأفراد المطلوبين لإنهاء في الموعد</div>
+            <div style="font-size:2rem;font-weight:900;color:#1b5e20" id="calcReqNum">—</div>
+            <div style="font-size:.8rem" id="calcReqDetail">—</div>
+            <div style="font-size:.85rem;font-weight:700;margin-top:6px" id="calcReqStatus">—</div>
+          </div>
+          <div style="margin-top:10px;border-top:1px solid #ddd;padding-top:8px">
+            <div style="font-weight:700;margin-bottom:6px;font-size:.82rem">📅 الجدول الزمني المقترح:</div>
+            <div id="calcTimeline"></div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px">
+          <label>📝 ملاحظات</label>
+          <input type="text" id="npNote" placeholder="أي ملاحظات إضافية...">
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="submitPlan()">📤 إرسال للاعتماد</button>
+          <button class="btn btn-outline" onclick="clearForm()">🗑️ مسح</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- TAB: UPLOAD -->
+  <div class="tab-content" id="tab-upload">
+    <div class="card">
+      <div class="section-title">📂 رفع ملف خطة التسليمات (Excel)</div>
+      <p style="font-size:.82rem;color:#666;margin-bottom:14px">ارفع ملف Excel يحتوي على خطة التسليمات — النظام هيقرأه تلقائياً ويحوّله لخطط تركيب</p>
+
+      <!-- Upload Zone -->
+      <div id="uploadZone" onclick="document.getElementById('xlFile').click()"
+        style="border:2.5px dashed #9c27b0;border-radius:12px;padding:30px;text-align:center;cursor:pointer;background:#fdf4ff;margin-bottom:14px;transition:.2s"
+        ondragover="event.preventDefault();this.style.background='#f3e5f5'"
+        ondragleave="this.style.background='#fdf4ff'"
+        ondrop="handleDrop(event)">
+        <div style="font-size:2rem;margin-bottom:8px">📊</div>
+        <div style="font-weight:700;color:var(--purple)">اضغط لاختيار ملف Excel</div>
+        <div style="font-size:.75rem;color:#888;margin-top:4px">أو اسحب الملف هنا | xlsx, xls, csv</div>
+      </div>
+      <input type="file" id="xlFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])">
+
+      <!-- Column Mapping -->
+      <div id="mappingSection" style="display:none">
+        <div class="section-title" style="margin-top:16px">🗂️ ربط الأعمدة</div>
+        <p style="font-size:.78rem;color:#666;margin-bottom:10px">حدد أي عمود من الملف يقابل كل حقل:</p>
+        <div id="colMapping" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px"></div>
+        <button class="btn btn-primary" onclick="parseAndPreview()">🔍 معاينة البيانات</button>
+      </div>
+
+      <!-- Preview Table -->
+      <div id="previewSection" style="display:none;margin-top:16px">
+        <div class="section-title">👁️ معاينة البيانات</div>
+        <div style="overflow-x:auto;margin-bottom:14px">
+          <table id="previewTable" style="width:100%;border-collapse:collapse;font-size:.78rem">
+            <thead id="previewHead"></thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+        <div style="background:#e8f5e9;border-radius:8px;padding:10px;font-size:.82rem;margin-bottom:12px">
+          ✅ <span id="previewCount">0</span> صف جاهز للاستيراد
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="importPlans()">📥 استيراد كخطط</button>
+          <button class="btn btn-outline" onclick="resetUpload()">🔄 رفع ملف آخر</button>
+        </div>
+      </div>
+
+      <!-- Template Download -->
+      <div style="margin-top:16px;padding:12px;background:#f5f5f5;border-radius:8px;font-size:.82rem">
+        <div style="font-weight:700;margin-bottom:6px">📋 الأعمدة المطلوبة في الملف:</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;color:#555">
+          <div>• رقم الأمر (Installation Order)</div>
+          <div>• اسم العميل (Customer)</div>
+          <div>• الموقع (Address)</div>
+          <div>• عدد الوحدات (Order Qty)</div>
+          <div>• تاريخ التسليم (Planned finish date)</div>
+          <div>• الفريق (Installation Group)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- MODAL: PLAN DETAIL -->
+<div class="modal-overlay" id="planModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">تفاصيل الخطة</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbyQbJhyNzQ-jHIoojXFAb1wxXWpwRQNj8jHdzTWyOyHIusE5-YCrzTCo4nkMAWD-1DgWA/exec';
+const SK = 'plan_v1';
+const TELEGRAM_BOT = '8209404725:AAH1zZ_QzS3nDW01VMd0TLLHyvC1EYFPdh0';
+
+// الهدف: 150 وحدة/فني/شهر ÷ 26 يوم عمل (الجمعة إجازة فقط) = 5.77 وحدة/فني/يوم
+const DAILY_RATE = 5.77;
+const MONTHLY_TARGET = 150; // وحدة/فني/شهر
+const WORKING_DAYS_MONTH = 26;
+
+const TEAM_INFO = {
+  'P1':     { name: 'سامى فؤاد',   code: 'B',  size: 61, id: '1453588787' },
+  '109962': { name: 'هشام جمال',   code: 'D',  size: 55, id: '5555531128' },
+  'P4':     { name: 'حازم قاعود',  code: 'C',  size: 37, id: '979158814'  },
+  'A4':     { name: 'محمد وسيم',   code: 'A4', size: 5,  id: '',  specialty: 'flooring', contractors: true },
+  'ahmed':  { name: 'أحمد حسن',    code: 'A',  size: 25, id: '8583850058' },
+};
+
+const ADMIN_IDS = ['7055250567','8562342656','8017935026'];
+
+const PW = {
+  // ── إدارة — يشوفوا كل الخطط ──────────────────────────
+  'ashraf|admin':  '2026',   // أشرف قاسم
+  'fathy|admin':   '2026',   // محمد فتحي
+  'khaled|admin':  '2026',   // خالد علي
+  // ── مديرو المجموعات — خطة فريقهم بس ─────────────────
+  'P1|manager':    'teamB2026',    // سامى فؤاد   — مجموعة B
+  'P109|manager':  'teamD2026',    // هشام جمال   — مجموعة D
+  'P4|manager':    'teamC2026',    // حازم قاعود  — مجموعة C
+  'ahmed|manager': 'teamA2026',    // أحمد حسن    — مجموعة A
+  'A4|manager':    'team42026',    // محمد وسيم   — مجموعة A4
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let U = null;
+let ORDERS = [];
+let PLANS = JSON.parse(localStorage.getItem(SK+'_plans') || '[]');
+
+// ═══════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  let role = null, teamCode = null;
+
+  if (PW[user+'|admin']   === pass) { role = 'admin'; }
+  if (PW[user+'|manager'] === pass) {
+    role = 'manager';
+    // map login name to actual team code
+    const teamMap = { 'P1':'P1', 'P109':'109962', 'P4':'P4', 'ahmed':'ahmed', 'A4':'A4' };
+    teamCode = teamMap[user] || user;
+  }
+  if (PW[user+'|planner'] === pass) { role = 'planner'; }
+
+  if (!role) { document.getElementById('loginErr').style.display='block'; return; }
+
+  const teamInfo = teamCode ? TEAM_INFO[teamCode] : null;
+  U = { name: teamInfo ? teamInfo.name : user, role, teamCode };
+  localStorage.setItem(SK+'_session', JSON.stringify(U));
+
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('headerUser').textContent =
+    U.name + (role==='admin'?' 👑': role==='manager'?' 🔧':'');
+
+  // مديرو المجموعات — إخفاء تبويبات الإدارة
+  if (role === 'manager') {
+    document.querySelectorAll('.tab')[3].style.display = 'none'; // إخفاء ➕ خطة جديدة
+    document.querySelectorAll('.tab')[4].style.display = 'none'; // إخفاء 📂 رفع ملف
+  }
+  loadFromServer();
+}
+
+function doLogout() {
+  U = null;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const ids = ['dashboard','orders','plans','newplan','upload'];
+    t.classList.toggle('active', ids[i]===id);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if (id==='dashboard') renderDashboard();
+  if (id==='orders')    renderOrders();
+  if (id==='plans')     renderPlans();
+  if (id==='newplan')   populateOrderSelect();
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOAD FROM SERVER
+// ═══════════════════════════════════════════════════════════
+function loadFromServer() {
+  // جلب الأوامر من SAPOrders (تحتوي على total_units الحقيقية)
+  fetch(API_URL + '?action=getOrders')
+    .then(r => r.json())
+    .then(data => {
+      if (data.orders && data.orders.length) {
+        ORDERS = data.orders.filter(o => o.order_no && !String(o.order_no).startsWith('TEST'));
+      } else {
+        ORDERS = getDemoOrders();
+      }
+      renderDashboard();
+      renderOrders();
+      renderPlans();
+      populateOrderSelect();
+    })
+    .catch(() => {
+      ORDERS = getDemoOrders();
+      renderDashboard();
+      renderOrders();
+      renderPlans();
+      populateOrderSelect();
+    });
+}
+
+function getDemoOrders() {
+  return [
+    {order_no:'20080195',customer:'مستشفى الأطفال المنصورة',team_code:'P1',status:'REL',ts:Date.now()-58*86400000},
+    {order_no:'20080467',customer:'جامعة القاهرة',team_code:'109962',status:'REL',ts:Date.now()-42*86400000},
+    {order_no:'20080647',customer:'مستشفى سيناء',team_code:'P4',status:'REL',ts:Date.now()-35*86400000},
+    {order_no:'20081102',customer:'فندق ماريوت',team_code:'ahmed',status:'REL',ts:Date.now()-10*86400000},
+    {order_no:'20081250',customer:'مجمع تجاري مدينة نصر',team_code:'',status:'',ts:Date.now()-2*86400000},
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function renderDashboard() {
+  const now = Date.now();
+  const isManager = U?.role === 'manager';
+  const myPlans = isManager ? PLANS.filter(p => p.team_code === U.teamCode) : PLANS;
+
+  const delayed = ORDERS.filter(o => {
+    if (['Completed','TECO','CLSD'].includes(o.status)) return false;
+    if (isManager && o.team_code !== U.teamCode) return false;
+    return now - (o.ts||0) > 3*86400000;
+  });
+  const planned   = myPlans.filter(p => p.status === 'approved');
+  const unplanned = isManager
+    ? myPlans.filter(p => p.status === 'pending')
+    : ORDERS.filter(o => !PLANS.find(p => p.order_no === o.order_no));
+
+  document.getElementById('statTotal').textContent     = isManager ? myPlans.length : ORDERS.length;
+  document.getElementById('statUnplanned').textContent = unplanned.length;
+  document.getElementById('statApproved').textContent  = planned.length;
+  document.getElementById('statDelayed').textContent   = delayed.length;
+  // تغيير تسميات للمدير
+  if (isManager) {
+    document.querySelector('#tab-dashboard .stat-card:first-child .stat-label').textContent = 'خططك الإجمالية';
+    document.querySelector('#tab-dashboard .stat-card:nth-child(2) .stat-label').textContent = 'في انتظار الاعتماد';
+  }
+
+  // Team capacity
+  const capEl = document.getElementById('teamCapacity');
+  let capHtml = '';
+  Object.entries(TEAM_INFO).forEach(([code, t]) => {
+    const teamOrders = ORDERS.filter(o => o.team_code === code && !['Completed','TECO','CLSD'].includes(o.status));
+    const teamPlans  = PLANS.filter(p => p.team_code === code && p.status === 'approved');
+    const plannedUnits = teamPlans.reduce((s,p) => s+(p.units||0), 0);
+    const capacity = t.size * DAILY_RATE * 10; // 10 يوم كأفق زمني
+    const pct = Math.min(Math.round((plannedUnits/capacity)*100), 100);
+    const colorClass = pct < 50 ? 'cap-green' : pct < 80 ? 'cap-orange' : 'cap-red';
+    capHtml += `
+      <div class="team-bar">
+        <div class="team-bar-header">
+          <span class="team-bar-name">${t.code} — ${t.name} (${t.size} فني)</span>
+          <span>${teamOrders.length} أمر نشط | ${pct}% محمّل</span>
+        </div>
+        <div class="team-bar-track"><div class="team-bar-fill ${colorClass}" style="width:${pct}%"></div></div>
+      </div>`;
+  });
+  capEl.innerHTML = capHtml || '<div class="empty">لا بيانات</div>';
+
+  // Urgent orders (no plan + delayed)
+  const urgEl = document.getElementById('urgentOrders');
+  const urgOrders = ORDERS.filter(o => {
+    if (['Completed','TECO','CLSD'].includes(o.status)) return false;
+    const hasP = PLANS.find(p => p.order_no===o.order_no && p.status==='approved');
+    const days = Math.floor((now-(o.ts||0))/86400000);
+    return !hasP && days > 3;
+  }).slice(0,5);
+  if (!urgOrders.length) {
+    urgEl.innerHTML = '<div class="empty"><div class="empty-icon">✅</div>لا توجد أوامر عاجلة</div>';
+  } else {
+    urgEl.innerHTML = urgOrders.map(o => {
+      const days = Math.floor((now-(o.ts||0))/86400000);
+      return `<div class="order-card urgent" style="margin-bottom:8px">
+        <div class="order-top">
+          <span class="order-no">${o.order_no}</span>
+          <span class="tag tag-red">${days} يوم</span>
+        </div>
+        <div class="order-customer">${o.customer||'—'}</div>
+        <button class="btn btn-sm btn-primary" style="margin-top:6px" onclick="openPlanFor('${o.order_no}')">📅 خطط الآن</button>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ORDERS
+// ═══════════════════════════════════════════════════════════
+function renderOrders() {
+  const el = document.getElementById('ordersList');
+  const filter = document.getElementById('filterStatus')?.value || '';
+  const now = Date.now();
+
+  let list = [...ORDERS];
+  if (filter === 'unplanned') list = list.filter(o => !PLANS.find(p => p.order_no===o.order_no));
+  if (filter === 'planned')   list = list.filter(o =>  PLANS.find(p => p.order_no===o.order_no && p.status==='approved'));
+  if (filter === 'completed') list = list.filter(o => ['Completed','TECO','CLSD'].includes(o.status));
+
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>لا توجد أوامر</div>'; return; }
+
+  el.innerHTML = list.map(o => {
+    const days = Math.floor((now-(o.ts||0))/86400000);
+    const plan  = PLANS.find(p => p.order_no===o.order_no);
+    const team  = TEAM_INFO[o.team_code];
+    const isDelayed = days > 3 && !['Completed','TECO','CLSD'].includes(o.status);
+    return `
+      <div class="order-card ${plan?'assigned':''} ${isDelayed&&!plan?'urgent':''}">
+        <div class="order-top">
+          <span class="order-no">${o.order_no}</span>
+          <span class="tag ${isDelayed?'tag-red':'tag-gray'}">${days} يوم</span>
+        </div>
+        <div class="order-customer">${o.customer||'—'}</div>
+        <div class="order-meta">
+          ${team?`<span class="tag tag-blue">${team.code} — ${team.name}</span>`:'<span class="tag tag-orange">غير محدد الفريق</span>'}
+          ${fmtStatus(o.status)}
+          ${plan?`<span class="tag tag-green">✅ مخططة</span>`:'<span class="tag tag-orange">⏳ تحتاج تخطيط</span>'}
+        </div>
+        ${plan ? `<div style="font-size:.78rem;color:#555;margin-top:4px">
+          📅 تسليم: ${plan.delivery_date||'—'} | 
+          ⏱️ ${plan.days||'—'} يوم | 
+          👤 ${TEAM_INFO[plan.team_code]?.name||plan.team_code}
+        </div>` : ''}
+        <div class="btn-row">
+          ${!plan ? `<button class="btn btn-sm btn-primary" onclick="openPlanFor('${o.order_no}')">📅 خطط</button>` : ''}
+          ${plan && plan.status==='pending' && U?.role==='admin' ? `<button class="btn btn-sm btn-success" onclick="approvePlan('${plan.id}')">✅ اعتماد</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function fmtStatus(s) {
+  const m = {
+    'REL':'<span class="tag tag-blue">قيد التركيب</span>',
+    'TECO':'<span class="tag tag-green">مكتمل SAP</span>',
+    'PCNF':'<span class="tag tag-orange">منجز جزئياً</span>',
+    'CLSD':'<span class="tag tag-gray">مغلق</span>',
+    'Completed':'<span class="tag tag-green">✅ مكتمل</span>',
+    'Being processed':'<span class="tag tag-blue">🔵 جارى</span>',
+    'Stopped':'<span class="tag tag-red">🔴 متوقف</span>',
+  };
+  return m[s] || `<span class="tag tag-gray">${s||'—'}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PLANS
+// ═══════════════════════════════════════════════════════════
+function renderPlans() {
+  const el = document.getElementById('plansList');
+  // مدير المجموعة يشوف خطته بس
+  let myPlans = U?.role === 'manager'
+    ? PLANS.filter(p => p.team_code === U.teamCode)
+    : PLANS;
+
+  if (!myPlans.length) {
+    el.innerHTML = U?.role === 'manager'
+      ? '<div class="empty"><div class="empty-icon">📅</div>لا توجد خطط لفريقك حتى الآن<br><small>الإدارة ستُرسل لك خطتك قريباً</small></div>'
+      : '<div class="empty"><div class="empty-icon">📋</div>لا توجد خطط بعد<br><small>ابدأ بإنشاء خطة من تبويب ➕ خطة جديدة</small></div>';
+    return;
+  }
+  el.innerHTML = myPlans.slice().reverse().map(p => {
+    const team = TEAM_INFO[p.team_code];
+    const statusCls = p.status==='approved'?'status-approved':p.status==='rejected'?'status-rejected':'status-pending';
+    const statusLbl = p.status==='approved'?'✅ معتمدة':p.status==='rejected'?'❌ مرفوضة':'⏳ في الانتظار';
+    return `
+      <div class="plan-item">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-weight:700;color:var(--purple)">${p.order_no}</div>
+            <div style="font-size:.82rem;color:#555">${p.customer||'—'}</div>
+          </div>
+          <span class="plan-status ${statusCls}">${statusLbl}</span>
+        </div>
+        <div style="font-size:.8rem;color:#444;line-height:1.7">
+          👥 الفريق: <b>${team?team.name:p.team_code||'—'}</b><br>
+          📦 الوحدات: <b>${p.units||'—'}</b> وحدة<br>
+          📅 التسليم: <b>${p.delivery_date||'—'}</b><br>
+          ⏱️ المدة: <b>${p.days||'—'} يوم</b><br>
+          🏗️ رسومات هندسية: <b>${p.drawings_date||'—'}</b> (T-10)<br>
+          🏠 زيارة موقع: <b>${p.site_visit||'—'}</b> (T-5)<br>
+          ${p.note?`📝 ${p.note}<br>`:''}
+          👤 أنشأها: ${p.by||'—'} | ${p.created_at||'—'}
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+          ${p.status==='pending' && U?.role==='admin' ? `
+            <button class="btn btn-sm btn-success" onclick="approvePlan('${p.id}')">✅ اعتماد</button>
+            <button class="btn btn-sm btn-danger" onclick="rejectPlan('${p.id}')">❌ رفض</button>` : ''}
+          ${p.status==='approved' && U?.role==='manager' ? `
+            <button class="btn btn-sm btn-outline" onclick="requestModification('${p.id}')">✏️ طلب تعديل</button>` : ''}
+          ${p.status==='approved' && U?.role==='admin' ? `
+            <span style="font-size:.75rem;color:var(--green)">✅ معتمدة</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEW PLAN
+// ═══════════════════════════════════════════════════════════
+function populateOrderSelect() {
+  const sel = document.getElementById('npOrder');
+  if (!sel) return;
+  const opts = ORDERS
+    .filter(o => !PLANS.find(p => p.order_no===o.order_no && p.status==='approved'))
+    .map(o => `<option value="${o.order_no}">${o.order_no} — ${o.customer||'—'}</option>`);
+  sel.innerHTML = '<option value="">اختر الأمر...</option>' + opts.join('');
+}
+
+function openPlanFor(orderNo) {
+  switchTab('newplan');
+  const sel = document.getElementById('npOrder');
+  if (sel) { sel.value = orderNo; onOrderSelect(); }
+}
+
+function onOrderSelect() {
+  const orderNo = document.getElementById('npOrder').value;
+  const info = document.getElementById('orderInfo');
+  if (!orderNo) { info.style.display='none'; return; }
+  const o = ORDERS.find(x => x.order_no === orderNo);
+  if (!o) return;
+  info.style.display = 'block';
+  document.getElementById('npCustomer').value  = o.customer    || '';
+  document.getElementById('npLocation').value  = o.address     || '';
+  document.getElementById('npUnits').value     = o.total_units || o.units || '';
+  if (o.team_code) document.getElementById('npTeam').value = o.team_code;
+  calcPlan();
+}
+
+function calcPlan() {
+  const units    = parseInt(document.getElementById('npUnits').value) || 0;
+  const teamCode = document.getElementById('npTeam').value;
+  const delivery = document.getElementById('npDelivery').value;
+  const calcBox  = document.getElementById('calcResult');
+
+  if (!units || !teamCode) { calcBox.style.display='none'; return; }
+  const team = TEAM_INFO[teamCode];
+  if (!team) return;
+
+  const dailyCap = team.size * DAILY_RATE;
+  const days     = Math.ceil(units / dailyCap);
+
+  // حساب الأفراد المطلوبين بناءً على تاريخ التسليم
+  let reqStaff = team.size, availDays = days, staffStatus = '';
+  if (delivery) {
+    availDays = countWorkingDays(new Date(), new Date(delivery));
+    if (availDays < 1) availDays = 1;
+    reqStaff  = Math.ceil(units / (availDays * DAILY_RATE));
+    if (reqStaff <= team.size) {
+      staffStatus = `<span style="color:#2e7d32">✅ الفريق كافٍ (${team.size} فني)</span>`;
+    } else {
+      staffStatus = `<span style="color:#c62828">⚠️ يحتاج ${reqStaff} فني — الفريق ${team.size} فقط</span>`;
+    }
+  }
+
+  document.getElementById('calcUnits').textContent     = units + ' وحدة';
+  document.getElementById('calcTeamSize').textContent  = team.size + ' فني';
+  document.getElementById('calcCapacity').textContent  = dailyCap.toFixed(1) + ' وحدة/يوم';
+  document.getElementById('calcDays').textContent      = days + ' يوم عمل';
+
+  // عرض الأفراد المطلوبين
+  const reqEl     = document.getElementById('calcReqStaff');
+  const reqNumEl  = document.getElementById('calcReqNum');
+  const reqDetEl  = document.getElementById('calcReqDetail');
+  const reqStatEl = document.getElementById('calcReqStatus');
+  if (delivery && reqEl) {
+    reqEl.style.display = 'block';
+    reqNumEl.textContent  = reqStaff + ' فني';
+    reqDetEl.textContent  = availDays + ' يوم متاح حتى ' + new Date(delivery).toLocaleDateString('ar-EG');
+    if (reqStaff <= team.size) {
+      reqEl.style.background = '#e8f5e9';
+      reqNumEl.style.color   = '#1b5e20';
+      reqStatEl.innerHTML    = `✅ الفريق كافٍ — ${team.name} (${team.size} فني متاح)`;
+    } else {
+      reqEl.style.background = '#ffebee';
+      reqNumEl.style.color   = '#c62828';
+      reqStatEl.innerHTML    = `⚠️ الفريق (${team.size} فني) غير كافٍ — يحتاج ${reqStaff - team.size} فني إضافي`;
+    }
+  } else if (reqEl) {
+    reqEl.style.display = 'none';
+  }
+
+  // timeline
+  let tlHtml = '';
+  if (delivery) {
+    const delDate = new Date(delivery);
+    const drawDate = new Date(delDate); drawDate.setDate(drawDate.getDate()-10);
+    const visitDate = new Date(delDate); visitDate.setDate(visitDate.getDate()-5);
+    const endDate = new Date(delDate); endDate.setDate(endDate.getDate()+days);
+
+    tlHtml = `
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot tl-next"></div><div><div class="tl-label">📐 رسومات هندسية جاهزة</div><div class="tl-date">${fmtDate(drawDate)} (T-10)</div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-next"></div><div><div class="tl-label">🏠 زيارة الموقع</div><div class="tl-date">${fmtDate(visitDate)} (T-5)</div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-done"></div><div><div class="tl-label">🚚 تسليم للموقع</div><div class="tl-date">${fmtDate(delDate)} (T-0)</div></div></div>
+        <div class="tl-item"><div class="tl-dot tl-future"></div><div><div class="tl-label">✅ انتهاء التركيب</div><div class="tl-date">${fmtDate(endDate)} (T+${days})</div></div></div>
+      </div>`;
+  }
+  document.getElementById('calcTimeline').innerHTML = tlHtml;
+  calcBox.style.display = 'block';
+}
+
+// حساب أيام العمل (الجمعة إجازة فقط)
+function countWorkingDays(from, to) {
+  let count = 0;
+  const d = new Date(from);
+  d.setHours(0,0,0,0);
+  const end = new Date(to);
+  end.setHours(0,0,0,0);
+  while (d < end) {
+    if (d.getDay() !== 5) count++; // 5 = الجمعة
+    d.setDate(d.getDate() + 1);
+  }
+  return Math.max(count, 1);
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('ar-EG', {year:'numeric',month:'short',day:'numeric'});
+}
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate()+n);
+  return d.toISOString().split('T')[0];
+}
+
+function submitPlan() {
+  const orderNo  = document.getElementById('npOrder').value;
+  const customer = document.getElementById('npCustomer').value;
+  const location = document.getElementById('npLocation').value;
+  const units    = parseInt(document.getElementById('npUnits').value) || 0;
+  const teamCode = document.getElementById('npTeam').value;
+  const delivery = document.getElementById('npDelivery').value;
+  const priority = document.getElementById('npPriority').value;
+  const note     = document.getElementById('npNote').value;
+
+  if (!orderNo || !units || !teamCode || !delivery) {
+    showToast('⚠️ يرجى تعبئة جميع الحقول المطلوبة'); return;
+  }
+
+  const team     = TEAM_INFO[teamCode];
+  const dailyCap = team.size * DAILY_RATE;
+  const days     = Math.ceil(units / dailyCap);
+
+  const plan = {
+    id:             'P' + Date.now(),
+    order_no:       orderNo,
+    customer,
+    location,
+    units,
+    team_code:      teamCode,
+    delivery_date:  delivery,
+    days,
+    drawings_date:  addDays(delivery, -10),
+    site_visit:     addDays(delivery, -5),
+    end_date:       addDays(delivery, days),
+    priority,
+    note,
+    status:         U?.role === 'admin' ? 'approved' : 'pending',
+    by:             U?.name || 'غير معروف',
+    created_at:     new Date().toLocaleDateString('ar-EG'),
+  };
+
+  PLANS.push(plan);
+  localStorage.setItem(SK+'_plans', JSON.stringify(PLANS));
+
+  if (plan.status === 'approved') {
+    sendPlanNotification(plan);
+    showToast('✅ تم اعتماد الخطة وإرسال الإشعارات');
+  } else {
+    showToast('✅ تم إرسال الخطة للاعتماد');
+    notifyAdmins(plan);
+  }
+
+  clearForm();
+  switchTab('plans');
+}
+
+function approvePlan(id) {
+  const plan = PLANS.find(p => p.id === id);
+  if (!plan) return;
+  plan.status = 'approved';
+  plan.approved_by = U?.name;
+  plan.approved_at = new Date().toLocaleDateString('ar-EG');
+  localStorage.setItem(SK+'_plans', JSON.stringify(PLANS));
+  sendPlanNotification(plan);
+  renderPlans();
+  renderOrders();
+  renderDashboard();
+  showToast('✅ تم اعتماد الخطة وإرسال الإشعارات للفريق');
+}
+
+function rejectPlan(id) {
+  const plan = PLANS.find(p => p.id === id);
+  if (!plan) return;
+  plan.status = 'rejected';
+  localStorage.setItem(SK+'_plans', JSON.stringify(PLANS));
+  renderPlans();
+  showToast('❌ تم رفض الخطة');
+}
+
+function requestModification(id) {
+  const plan = PLANS.find(p => p.id === id);
+  if (!plan) return;
+  const reason = prompt('📝 اكتب سبب طلب التعديل:\n(سيُرسل للإدارة للمراجعة)');
+  if (!reason) return;
+
+  // سجّل الطلب
+  if (!plan.mod_requests) plan.mod_requests = [];
+  plan.mod_requests.push({
+    by:     U.name,
+    reason,
+    ts:     new Date().toLocaleDateString('ar-EG'),
+    status: 'pending'
+  });
+  localStorage.setItem(SK+'_plans', JSON.stringify(PLANS));
+
+  // إرسال لأشرف والإدارة
+  const team = TEAM_INFO[plan.team_code];
+  const msg =
+    `✏️ <b>طلب تعديل خطة</b>\n\n`+
+    `👤 مقدّم الطلب: ${U.name}\n`+
+    `📋 الأمر: ${plan.order_no} — ${plan.customer||'—'}\n`+
+    `📅 تاريخ التسليم: ${plan.delivery_date||'—'}\n\n`+
+    `📝 <b>السبب:</b>\n${reason}\n\n`+
+    `⚡ يرجى المراجعة والرد\n`+
+    `🔗 https://ashrafa1-glitch.github.io/mobica-fleet/planning/`;
+  ADMIN_IDS.forEach(adminId => sendTelegram(adminId, msg));
+
+  showToast('✅ تم إرسال طلب التعديل للإدارة');
+  renderPlans();
+}
+
+function clearForm() {
+  ['npOrder','npCustomer','npLocation','npUnits','npTeam','npDelivery','npNote'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('orderInfo').style.display = 'none';
+  document.getElementById('calcResult').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════
+function sendTelegram(chatId, text) {
+  if (!chatId) return;
+  fetch(`https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+  }).catch(()=>{});
+}
+
+function sendPlanNotification(plan) {
+  const team = TEAM_INFO[plan.team_code];
+  const msg =
+    `✅ <b>خطة تركيب معتمدة</b>\n\n`+
+    `📋 الأمر: ${plan.order_no}\n`+
+    `🏢 العميل: ${plan.customer||'—'}\n`+
+    `📍 الموقع: ${plan.location||'—'}\n`+
+    `📦 الوحدات: ${plan.units} وحدة\n`+
+    `⏱️ المدة: ${plan.days} يوم\n\n`+
+    `📅 الجدول الزمني:\n`+
+    `📐 رسومات هندسية: ${plan.drawings_date} (T-10)\n`+
+    `🏠 زيارة الموقع: ${plan.site_visit} (T-5)\n`+
+    `🚚 تسليم: ${plan.delivery_date} (T-0)\n`+
+    `🏁 انتهاء التركيب: ${plan.end_date}\n\n`+
+    `${plan.note?'📝 '+plan.note+'\n':''}`+
+    `👤 اعتمدها: ${plan.approved_by||plan.by}`;
+
+  // للفريق المسؤول
+  if (team?.id) sendTelegram(team.id, msg);
+  // للإدارة
+  ADMIN_IDS.forEach(id => sendTelegram(id, msg));
+}
+
+function notifyAdmins(plan) {
+  const team = TEAM_INFO[plan.team_code];
+  const msg =
+    `📋 <b>خطة جديدة تنتظر الاعتماد</b>\n\n`+
+    `📦 الأمر: ${plan.order_no} — ${plan.customer||'—'}\n`+
+    `👥 الفريق: ${team?team.name:plan.team_code}\n`+
+    `📦 الوحدات: ${plan.units} | ⏱️ المدة: ${plan.days} يوم\n`+
+    `📅 التسليم: ${plan.delivery_date}\n`+
+    `👤 أنشأها: ${plan.by}`;
+  ADMIN_IDS.forEach(id => sendTelegram(id, msg));
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════
+function closeModal() { document.getElementById('planModal').classList.remove('open'); }
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXCEL UPLOAD
+// ═══════════════════════════════════════════════════════════
+let XL_HEADERS = [];
+let XL_ROWS    = [];
+
+// Column aliases (Arabic + English variants)
+const COL_ALIASES = {
+  order_no:      ['Installation Order','رقم الأمر','Order No','order_no','أمر التركيب','رقم امر'],
+  customer:      ['Customer Name','اسم العميل','Customer','العميل','customer'],
+  location:      ['Installation Address','الموقع','Address','العنوان','location','الموقع/المشروع'],
+  units:         ['Order Qty','الكمية','Units','عدد الوحدات','Qty','الوحدات','qty'],
+  delivery_date: ['Planed finish date','Planned finish date','تاريخ التسليم','Delivery Date','delivery_date','تاريخ الانتهاء'],
+  team_code:     ['Installation Group','الفريق','Team','Group','team_code','مجموعة التركيب','المجموعة'],
+};
+
+function loadSheetJS(cb) {
+  if (window.XLSX) { cb(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload = cb;
+  document.head.appendChild(s);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').style.background = '#fdf4ff';
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+}
+
+function handleFile(file) {
+  if (!file) return;
+  document.getElementById('uploadZone').innerHTML =
+    `<div style="font-size:1.5rem">📊</div><div style="font-weight:700;color:var(--purple)">${file.name}</div><div style="font-size:.75rem;color:#888">جارى القراءة...</div>`;
+
+  loadSheetJS(() => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, {type:'array',cellDates:true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, {header:1,defval:''});
+        if (!data.length) { showToast('⚠️ الملف فارغ'); return; }
+
+        XL_HEADERS = data[0].map(h => String(h).trim());
+        XL_ROWS    = data.slice(1).filter(r => r.some(c => c !== ''));
+
+        document.getElementById('uploadZone').innerHTML =
+          `<div style="font-size:1.5rem">✅</div><div style="font-weight:700;color:var(--green)">${file.name}</div><div style="font-size:.75rem;color:#888">${XL_ROWS.length} صف | ${XL_HEADERS.length} عمود</div>`;
+
+        buildMappingUI();
+      } catch(err) { showToast('❌ خطأ في قراءة الملف: ' + err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function buildMappingUI() {
+  const mapDiv = document.getElementById('colMapping');
+  const fields = [
+    {key:'order_no',label:'رقم الأمر *'},
+    {key:'customer',label:'اسم العميل *'},
+    {key:'location',label:'الموقع'},
+    {key:'units',label:'عدد الوحدات *'},
+    {key:'delivery_date',label:'تاريخ التسليم *'},
+    {key:'team_code',label:'الفريق'},
+  ];
+
+  mapDiv.innerHTML = fields.map(f => {
+    // auto-detect best match
+    let bestIdx = '';
+    for (const alias of (COL_ALIASES[f.key] || [])) {
+      const idx = XL_HEADERS.findIndex(h => h.toLowerCase().includes(alias.toLowerCase()) || alias.toLowerCase().includes(h.toLowerCase()));
+      if (idx >= 0) { bestIdx = idx; break; }
+    }
+    const opts = XL_HEADERS.map((h,i) => `<option value="${i}" ${i==bestIdx?'selected':''}>${h}</option>`).join('');
+    return `<div class="form-group">
+      <label>${f.label}</label>
+      <select id="map_${f.key}" style="width:100%;padding:6px;border:1.5px solid #ddd;border-radius:7px;font-size:.78rem;font-family:inherit">
+        <option value="">— تجاهل —</option>${opts}
+      </select>
+    </div>`;
+  }).join('');
+
+  document.getElementById('mappingSection').style.display = 'block';
+  document.getElementById('previewSection').style.display = 'none';
+}
+
+function getColVal(row, key) {
+  const sel = document.getElementById('map_'+key);
+  if (!sel || sel.value === '') return '';
+  return String(row[parseInt(sel.value)] || '').trim();
+}
+
+function parseAndPreview() {
+  const parsed = [];
+  XL_ROWS.forEach(row => {
+    const order_no = getColVal(row,'order_no');
+    if (!order_no) return;
+    const units    = parseInt(getColVal(row,'units')) || 0;
+    const rawDate  = getColVal(row,'delivery_date');
+    let delivery_date = '';
+    if (rawDate) {
+      const d = new Date(rawDate);
+      if (!isNaN(d)) delivery_date = d.toISOString().split('T')[0];
+      else delivery_date = rawDate;
+    }
+    const teamRaw  = getColVal(row,'team_code');
+    // map team name to code
+    const teamCode = mapTeamCode(teamRaw);
+    const team     = TEAM_INFO[teamCode];
+    const dailyCap = team ? team.size * DAILY_RATE : DAILY_RATE;
+    const days     = units ? Math.ceil(units / dailyCap) : '—';
+
+    parsed.push({
+      order_no,
+      customer:      getColVal(row,'customer'),
+      location:      getColVal(row,'location'),
+      units,
+      delivery_date,
+      team_code:     teamCode,
+      team_name:     team ? team.name : teamRaw || '—',
+      days,
+    });
+  });
+
+  // build preview table
+  const head = document.getElementById('previewHead');
+  const body = document.getElementById('previewBody');
+  const cols = ['رقم الأمر','العميل','الموقع','الوحدات','تاريخ التسليم','الفريق','المدة (يوم)'];
+  head.innerHTML = '<tr>'+cols.map(c=>`<th style="background:#6a1b9a;color:#fff;padding:6px 8px;text-align:right;font-size:.75rem">${c}</th>`).join('')+'</tr>';
+  body.innerHTML = parsed.map(p => `<tr style="border-bottom:1px solid #eee">
+    <td style="padding:5px 8px;font-size:.75rem;font-weight:700;color:var(--purple)">${p.order_no}</td>
+    <td style="padding:5px 8px;font-size:.75rem">${p.customer||'—'}</td>
+    <td style="padding:5px 8px;font-size:.75rem">${p.location||'—'}</td>
+    <td style="padding:5px 8px;font-size:.75rem;text-align:center">${p.units||'—'}</td>
+    <td style="padding:5px 8px;font-size:.75rem">${p.delivery_date||'—'}</td>
+    <td style="padding:5px 8px;font-size:.75rem">${p.team_name}</td>
+    <td style="padding:5px 8px;font-size:.75rem;text-align:center;font-weight:700;color:var(--orange)">${p.days}</td>
+  </tr>`).join('');
+
+  document.getElementById('previewCount').textContent = parsed.length;
+  document.getElementById('previewSection').style.display = 'block';
+  window._parsedRows = parsed;
+}
+
+function mapTeamCode(raw) {
+  if (!raw) return '';
+  const r = raw.toString().trim();
+  // direct match
+  if (TEAM_INFO[r]) return r;
+  // match by name
+  for (const [code, t] of Object.entries(TEAM_INFO)) {
+    if (r.includes(t.name) || r.includes(t.code) || t.name.includes(r)) return code;
+  }
+  return r;
+}
+
+function importPlans() {
+  const rows = window._parsedRows || [];
+  if (!rows.length) { showToast('⚠️ لا توجد بيانات للاستيراد'); return; }
+
+  let imported = 0;
+  rows.forEach(p => {
+    if (!p.order_no) return;
+    if (PLANS.find(x => x.order_no === p.order_no && x.status !== 'rejected')) return; // skip duplicates
+
+    const team     = TEAM_INFO[p.team_code];
+    const dailyCap = team ? team.size * DAILY_RATE : DAILY_RATE;
+    const days     = p.units ? Math.ceil(p.units / dailyCap) : 0;
+    const delivery = p.delivery_date;
+
+    PLANS.push({
+      id:            'PX' + Date.now() + imported,
+      order_no:      p.order_no,
+      customer:      p.customer,
+      location:      p.location,
+      units:         p.units,
+      team_code:     p.team_code,
+      delivery_date: delivery,
+      days,
+      drawings_date: delivery ? addDays(delivery,-10) : '—',
+      site_visit:    delivery ? addDays(delivery,-5)  : '—',
+      end_date:      delivery && days ? addDays(delivery,days) : '—',
+      priority:      'normal',
+      status:        'pending',
+      by:            U?.name || 'رفع ملف',
+      created_at:    new Date().toLocaleDateString('ar-EG'),
+    });
+    imported++;
+  });
+
+  localStorage.setItem(SK+'_plans', JSON.stringify(PLANS));
+  showToast(`✅ تم استيراد ${imported} خطة — في انتظار الاعتماد`);
+
+  // notify admins
+  const msg = `📂 <b>استيراد خطط جديدة</b>\n\nتم رفع ${imported} خطة تركيب تنتظر اعتمادك\n\n🔗 https://ashrafa1-glitch.github.io/mobica-fleet/planning/`;
+  ADMIN_IDS.forEach(id => sendTelegram(id, msg));
+
+  resetUpload();
+  switchTab('plans');
+}
+
+function resetUpload() {
+  XL_HEADERS = []; XL_ROWS = []; window._parsedRows = [];
+  document.getElementById('uploadZone').innerHTML =
+    `<div style="font-size:2rem;margin-bottom:8px">📊</div>
+     <div style="font-weight:700;color:var(--purple)">اضغط لاختيار ملف Excel</div>
+     <div style="font-size:.75rem;color:#888;margin-top:4px">أو اسحب الملف هنا | xlsx, xls, csv</div>`;
+  document.getElementById('xlFile').value = '';
+  document.getElementById('mappingSection').style.display = 'none';
+  document.getElementById('previewSection').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem(SK+'_session');
+  if (saved) {
+    U = JSON.parse(saved);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('headerUser').textContent = U.name + (U.role==='admin'?' 👑':'');
+    loadFromServer();
+  }
+});
+</script>
+</body>
+</html>
